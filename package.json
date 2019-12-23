@@ -1,0 +1,22 @@
+{
+  "name": "signalk-history-plugin",
+  "version": "1.0.0",
+  "description": "improved history api for signalk",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codekilo/signalk-history-plugin.git"
+  },
+  "keywords": [
+    "signalk-node-server-plugin"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/codekilo/signalk-history-plugin/issues"
+  },
+  "homepage": "https://github.com/codekilo/signalk-history-plugin#readme"
+}
