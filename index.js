@@ -46,11 +46,30 @@ module.exports = function(app) {
         res.status(501).send('No history provider');
         app.setProviderError("No history provider");
       } else {
-        req.app.historyProvider.getHistory(new Date(req.query.start), path, deltas => {
-          console.log(deltas.length);
+        let promises = [];
+        let currentTime = new Date(req.query.start);
+        const endTime = new Date(req.query.end);
+        while (currentTime < endTime) {
+          promises.push(new Promise(function(resolve, reject) {
+            req.app.historyProvider.getHistory(currentTime, path, deltas => {
+              resolve(deltas);
+            });
+          }));
+          currentTime = new Date(currentTime.getTime() + 1000);
+        }
+        Promise.allSettled(promises).then((results) => {
+          let deltas = [];
+          results.forEach((result) => {
+            if (deltas.length < 1) {
+              deltas.push(result.value[0]);
+            } else if (deltas[deltas.length - 1].updates[0].timestamp != result.value[0].updates[0].timestamp) {
+              deltas.push(result.value[0]);
+            }
+          });
+          console.log("promises: ", promises.length);
+          console.log("deltas: ", deltas.length);
           res.send(deltas);
         });
-        console.log(req.query);
       }
 
     };
