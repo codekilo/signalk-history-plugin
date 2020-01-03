@@ -31,14 +31,7 @@ module.exports = function(app) {
 
   plugin.signalKApiRoutes = function(router) {
     const historyHandler = function(req, res, next) {
-      let path = String(req.path).replace('/history/', '');
-      path =
-        path.length > 0 ?
-        path
-        .replace(/\/$/, '')
-        .replace(/self/, app.selfId)
-        .split('/') :
-        [];
+      const path = extractPath(req.path, app.selfId);
       console.log("path: ", path);
       if (!req.query.start || !req.query.end) {
         res.status(400).send('Query needs to contain both start and end parameters');
@@ -47,15 +40,15 @@ module.exports = function(app) {
         app.setProviderError("No history provider");
       } else {
         let promises = [];
-        let currentTime = new Date(req.query.start);
         const endTime = new Date(req.query.end);
-        while (currentTime < endTime) {
+        const historyProvider = req.app.historyProvider;
+        for (let currentTime = new Date(req.query.start); currentTime < endTime; currentTime = new Date(currentTime.getTime() + 1000)) {
           promises.push(new Promise(function(resolve, reject) {
-            req.app.historyProvider.getHistory(currentTime, path, deltas => {
+            historyProvider.getHistory(currentTime, path, deltas => {
               resolve(deltas);
             });
           }));
-          currentTime = new Date(currentTime.getTime() + 1000);
+
         }
         Promise.allSettled(promises).then((results) => {
           let deltas = [];
@@ -86,3 +79,15 @@ module.exports = function(app) {
 
   return plugin;
 };
+
+function extractPath(path, selfId) {
+  let result = String(path).replace('/history/', '');
+  result =
+    result.length > 0 ?
+    result
+    .replace(/\/$/, '')
+    .replace(/self/, selfId)
+    .split('/') :
+    [];
+  return result;
+}
