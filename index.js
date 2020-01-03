@@ -53,11 +53,12 @@ module.exports = function(app) {
         Promise.allSettled(promises).then((results) => {
           let deltas = [];
           results.forEach((result) => {
-            if (deltas.length < 1) {
-              deltas.push(result.value[0]);
-            } else if (deltas[deltas.length - 1].updates[0].timestamp != result.value[0].updates[0].timestamp) {
-              deltas.push(result.value[0]);
-            }
+            result.value.forEach(obj => deltas.push(obj));
+            // if (deltas.length < 1) {
+            //   deltas.push(result.value[2]);
+            // } else if (deltas[deltas.length - 1].updates[0].timestamp != result.value[2].updates[0].timestamp) {
+            //   deltas.push(result.value[2]);
+            // }
           });
           console.log("promises: ", promises.length);
           console.log("deltas: ", deltas.length);
