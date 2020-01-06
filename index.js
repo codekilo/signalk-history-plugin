@@ -52,13 +52,15 @@ module.exports = function(app) {
         }
         Promise.allSettled(promises).then((results) => {
           let deltas = [];
+          let lastTimestamps = {};
           results.forEach((result) => {
-            result.value.forEach(obj => deltas.push(obj));
-            // if (deltas.length < 1) {
-            //   deltas.push(result.value[2]);
-            // } else if (deltas[deltas.length - 1].updates[0].timestamp != result.value[2].updates[0].timestamp) {
-            //   deltas.push(result.value[2]);
-            // }
+            result.value.forEach(obj => {
+              let deltaPath = obj.updates[0].values[0].path;
+              if (!lastTimestamps[deltaPath] || lastTimestamps[deltaPath] != obj.updates[0].timestamp) {
+                deltas.push(obj);
+                lastTimestamps[deltaPath] = obj.updates[0].timestamp;
+              }
+            });
           });
           console.log("promises: ", promises.length);
           console.log("deltas: ", deltas.length);
