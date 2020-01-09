@@ -1,8 +1,10 @@
 const PLUGIN_ID = 'signalk-history-plugin';
 const PLUGIN_NAME = 'SignalK History plugin';
+const Influx = require('influx');
 
 module.exports = function(app) {
   var plugin = {};
+  var client;
 
   plugin.id = PLUGIN_ID;
   plugin.name = PLUGIN_NAME;
@@ -15,6 +17,26 @@ module.exports = function(app) {
     app.setProviderStatus("Initializing");
     plugin.options = options;
     app.debug('Plugin started');
+    client = new Influx.InfluxDB({
+      host: options.host,
+      port: options.port, // optional, default 8086
+      protocol: 'http', // optional, default 'http'
+      database: options.database
+    });
+    client
+      .getDatabaseNames()
+      .then(names => {
+        app.debug('Connected');
+        if (!names.includes(options.database)) {
+          app.setProviderError("database not found");
+          plugin.stop();
+        }
+      })
+      .catch(err => {
+        console.log(err);
+        app.setProviderError(err);
+        plugin.stop();
+      });
     // if (!app.historyProvider) {
     //   app.setProviderError("no history provider");
     //   // plugin.stop();
@@ -25,6 +47,7 @@ module.exports = function(app) {
 
   // called when the plugin is stopped or encounters an error
   plugin.stop = function() {
+    client = undefined;
     app.debug('Plugin stopped');
     app.setProviderStatus('Stopped');
   };
@@ -35,9 +58,9 @@ module.exports = function(app) {
       console.log("path: ", path);
       if (!req.query.start || !req.query.end) {
         res.status(400).send('Query needs to contain both start and end parameters');
-      } else if (!req.app.historyProvider) {
-        res.status(501).send('No history provider');
-        app.setProviderError("No history provider");
+      } else if (!client) {
+        res.status(501).send('No database connection');
+        app.setProviderError("No database connection");
       } else {
         let promises = [];
         const endTime = new Date(req.query.end);
@@ -75,6 +98,23 @@ module.exports = function(app) {
 
   // The plugin configuration
   plugin.schema = {
+    required: ['host', 'port', 'database'],
+    properties: {
+      host: {
+        type: 'string',
+        title: 'Host',
+        default: 'localhost'
+      },
+      port: {
+        type: 'number',
+        title: 'Port',
+        default: 8086
+      },
+      database: {
+        type: 'string',
+        title: 'Database'
+      }
+    }
 
   };
 

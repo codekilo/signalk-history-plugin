@@ -18,5 +18,8 @@
   "bugs": {
     "url": "https://github.com/codekilo/signalk-history-plugin/issues"
   },
-  "homepage": "https://github.com/codekilo/signalk-history-plugin#readme"
+  "homepage": "https://github.com/codekilo/signalk-history-plugin#readme",
+  "dependencies": {
+    "influx": "^5.5.1"
+  }
 }
