@@ -54,41 +54,21 @@ module.exports = function(app) {
 
   plugin.signalKApiRoutes = function(router) {
     const historyHandler = function(req, res, next) {
-      const path = extractPath(req.path, app.selfId);
-      console.log("path: ", path);
+      const {
+        skPath,
+        context
+      } = extractPath(req.path, app.selfId);
       if (!req.query.start || !req.query.end) {
         res.status(400).send('Query needs to contain both start and end parameters');
       } else if (!client) {
         res.status(501).send('No database connection');
         app.setProviderError("No database connection");
       } else {
-        let promises = [];
-        const endTime = new Date(req.query.end);
-        const historyProvider = req.app.historyProvider;
-        for (let currentTime = new Date(req.query.start); currentTime < endTime; currentTime = new Date(currentTime.getTime() + 1000)) {
-          promises.push(new Promise(function(resolve, reject) {
-            historyProvider.getHistory(currentTime, path, deltas => {
-              resolve(deltas);
-            });
-          }));
-
-        }
-        Promise.allSettled(promises).then((results) => {
-          let deltas = [];
-          let lastTimestamps = {};
-          results.forEach((result) => {
-            result.value.forEach(obj => {
-              let deltaPath = obj.updates[0].values[0].path;
-              if (!lastTimestamps[deltaPath] || lastTimestamps[deltaPath] != obj.updates[0].timestamp) {
-                deltas.push(obj);
-                lastTimestamps[deltaPath] = obj.updates[0].timestamp;
-              }
-            });
-          });
-          console.log("promises: ", promises.length);
-          console.log("deltas: ", deltas.length);
-          res.send(deltas);
-        });
+        let start = new Date(req.query.start).toISOString();
+        let end = new Date(req.query.end).toISOString();
+        let query = `select * from ${skPath} where time > '${start}' and time <=  '${end}' and context =~ ${context} group by context`;
+        console.log("query: ", query);
+        client.query(query).then(result => res.send(result.groupRows));
       }
 
     };
@@ -132,5 +112,19 @@ function extractPath(path, selfId) {
     .replace(/self/, selfId)
     .split('/') :
     [];
-  return result;
+  if (result.length == 1) {
+    let context = `/${result[0]}.*/`;
+    let skPath = '/.*/';
+    return {
+      skPath,
+      context
+    };
+  } else if (result.length > 1) {
+    let context = `/${result[0]}\.${result[1]}\.*/`;
+    let skPath = `/${result.slice(2).join('.')}.*/`;
+    return {
+      skPath,
+      context
+    };
+  }
 }
