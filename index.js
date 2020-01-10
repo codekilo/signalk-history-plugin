@@ -66,9 +66,47 @@ module.exports = function(app) {
       } else {
         let start = new Date(req.query.start).toISOString();
         let end = new Date(req.query.end).toISOString();
-        let query = `select * from ${skPath} where time > '${start}' and time <=  '${end}' and context =~ ${context} group by context`;
+        let query = `select * from ${skPath} where time > '${start}' and time <=  '${end}' and context =~ ${context} group by context, source`;
         console.log("query: ", query);
-        client.query(query).then(result => res.send(result.groupRows));
+        client.query(query).then(result => result.groupRows.map(group => {
+          let context = group.tags.context;
+          let path = group.name;
+          let source = group.tags.source;
+          let timestamps = [];
+          let values = [];
+          group.rows.forEach(row => {
+            timestamps.push(row.time);
+            let value = row.value;
+            if (row.jsonValue != null) {
+              value = JSON.parse(row.jsonValue);
+            } else if (row.stringValue != null) {
+              value = row.stringValue;
+            } else if (row.boolValue != null) {
+              value = row.boolValue;
+            }
+            values.push(value);
+          });
+          return {
+            context: context,
+            timestamps: timestamps,
+            properties: [{
+              path: path,
+              source: {
+                label: source
+              },
+              values: values
+            }]
+          };
+        })).then(result => {
+          let history = {
+            version: "1.1.0",
+            startDate: start,
+            endDate: end,
+            objects: result
+          };
+          res.send(history);
+
+        });
       }
 
     };
