@@ -52,6 +52,7 @@ module.exports = function(app) {
     app.setProviderStatus('Stopped');
   };
 
+
   plugin.signalKApiRoutes = function(router) {
     const historyHandler = function(req, res, next) {
       const {
@@ -110,7 +111,28 @@ module.exports = function(app) {
       }
 
     };
+    const listHandler = function(req, res, next) {
+      const path = extractPathElements(String(req.path).replace('/list/', ''), app.selfId);
+      if (path[0] == 'paths') {
+        context = path.slice(1).join('.');
+        let query = `show measurements where context =~ /${context}/`;
+        console.log("query: ", query);
+        client.query(query).then(result => {
+          let response = {
+            version: "1.0.0",
+            context: context,
+            paths: result
+          };
+          res.send(response);
+        });
+
+      } else if (path[0] == 'vessels') {
+        res.send("nothing");
+      }
+      //show measurements where context = 'vessels.urn:mrn:imo:mmsi:205386990'
+    };
     router.get('/history/*', historyHandler);
+    router.get('/list/*', listHandler);
     return router;
   };
 
@@ -140,16 +162,10 @@ module.exports = function(app) {
 
   return plugin;
 };
-
+// Extract the path and context from the URL
 function extractPath(path, selfId) {
   let result = String(path).replace('/history/', '');
-  result =
-    result.length > 0 ?
-    result
-    .replace(/\/$/, '')
-    .replace(/self/, selfId)
-    .split('/') :
-    [];
+  result = extractPathElements(result, selfId);
   if (result.length == 1) {
     let context = `/${result[0]}.*/`;
     let skPath = '/.*/';
@@ -165,4 +181,16 @@ function extractPath(path, selfId) {
       context
     };
   }
+}
+
+function extractPathElements(path, selfId) {
+  let result = path;
+  result =
+    result.length > 0 ?
+    result
+    .replace(/\/$/, '')
+    .replace(/self/, selfId)
+    .split('/') :
+    [];
+  return result;
 }
