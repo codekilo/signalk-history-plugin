@@ -128,6 +128,8 @@ module.exports = function(app) {
 
       } else if (path[0] == 'vessels') {
         res.send("nothing");
+      } else {
+        res.status(404).send('can only list paths or vessels');
       }
       //show measurements where context = 'vessels.urn:mrn:imo:mmsi:205386990'
     };
