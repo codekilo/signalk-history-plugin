@@ -38,12 +38,7 @@ module.exports = function(app) {
         app.setProviderError(err);
         plugin.stop();
       });
-    // if (!app.historyProvider) {
-    //   app.setProviderError("no history provider");
-    //   // plugin.stop();
-    // } else {
     app.setProviderStatus("Running");
-    // }
   };
 
   // called when the plugin is stopped or encounters an error
@@ -69,7 +64,7 @@ module.exports = function(app) {
         let start = new Date(req.query.start).toISOString();
         let end = new Date(req.query.end).toISOString();
         let query = `select * from ${skPath} where time > '${start}' and time <=  '${end}' and context =~ ${context} group by context, source`;
-        console.log("query: ", query);
+        app.debug("query: %s", query);
         client.query(query).then(result => result.groupRows.map(group => {
           let context = group.tags.context;
           let path = group.name;
@@ -117,8 +112,8 @@ module.exports = function(app) {
       if (path[0] == 'paths') {
         let context = path.slice(1).join('.');
         let query = `show measurements where context =~ /${context}/`;
-        console.log("query: ", query);
-        client.query(query).then(result => {
+        app.debug("query: %s", query);
+        client.query(query).then(result => result.map(item => item.name)).then(result => {
           let response = {
             version: "1.0.0",
             context: context,
@@ -130,7 +125,7 @@ module.exports = function(app) {
       } else if (path[0] == 'vessels') {
         let skPath = path.slice(1).join('.');
         let query = `show tag values from /${skPath}.*/ with key = context`;
-        console.log("query: ", query);
+        app.debug("query: %s", query);
         client.query(query).then(result => {
           let seen = {};
           let set = [];
