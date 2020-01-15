@@ -140,7 +140,7 @@ module.exports = function(app) {
         }).then(result => {
           let response = {
             version: "1.0.0",
-            path: "context",
+            path: skPath,
             contexts: result
           };
           res.send(response);
