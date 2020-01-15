@@ -1,6 +1,7 @@
 const PLUGIN_ID = 'signalk-history-plugin';
 const PLUGIN_NAME = 'SignalK History plugin';
 const Influx = require('influx');
+const _ = require('lodash');
 
 module.exports = function(app) {
   var plugin = {};
@@ -114,7 +115,7 @@ module.exports = function(app) {
     const listHandler = function(req, res, next) {
       const path = extractPathElements(String(req.path).replace('/list/', ''), app.selfId);
       if (path[0] == 'paths') {
-        context = path.slice(1).join('.');
+        let context = path.slice(1).join('.');
         let query = `show measurements where context =~ /${context}/`;
         console.log("query: ", query);
         client.query(query).then(result => {
@@ -127,7 +128,20 @@ module.exports = function(app) {
         });
 
       } else if (path[0] == 'vessels') {
-        res.send("nothing");
+        let skPath = path.slice(1).join('.');
+        let query = `show tag values from /${skPath}.*/ with key = context`;
+        console.log("query: ", query);
+        client.query(query).then(result => _.uniqWith(result, (arrVal, othVal) => {
+          return arrVal.value === othVal.value;
+        })).then(result => {
+          let response = {
+            version: "1.0.0",
+            path: "context",
+            contexts: result
+          };
+          res.send(response);
+        });
+
       } else {
         res.status(404).send('can only list paths or vessels');
       }
