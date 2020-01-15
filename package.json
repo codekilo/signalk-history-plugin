@@ -20,7 +20,6 @@
   },
   "homepage": "https://github.com/codekilo/signalk-history-plugin#readme",
   "dependencies": {
-    "influx": "^5.5.1",
-    "lodash": "^4.17.15"
+    "influx": "^5.5.1"
   }
 }
